@@ -2,10 +2,16 @@
 
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
-import { ArrowRight, Heart, Menu, Minus, Plus, Search, ShoppingBag, Trash2, UserRound, X } from 'lucide-react'
+import { ArrowRight, Heart, Menu, Minus, Plus, Ruler, Search, ShoppingBag, Sofa, Trash2, UserRound, X } from 'lucide-react'
 
 type Product = { name: string; category: string; price: string; oldPrice: string; image: string; badge: string }
 type CartLine = { product: Product; quantity: number }
+type ServiceOffer = { id: string; name: string; title: string; description: string; image: string; icon: typeof Sofa }
+
+const serviceOffers: ServiceOffer[] = [
+  { id: 'casa', name: 'SIMON CASA · SERVICIO VIP', title: 'Diseño y amueblamiento', description: 'Asesoría personalizada para elegir muebles, iluminación, textiles y detalles que hagan de tu casa un espacio muy tuyo.', image: 'photo-1600210492486-724fe5c67fb0', icon: Sofa },
+  { id: 'atelier', name: 'SIMON ATELIER · SERVICIO VIP', title: 'Ropa hecha a tu medida', description: 'Prendas especiales con asesoría de estilo, selección de telas y ajustes para que cada detalle se sienta realmente tuyo.', image: 'photo-1598033129183-c4f50c736f10', icon: Ruler },
+]
 
 const categories = [
   { name: 'Moda mujer', image: 'photo-1483985988355-763728e1935b' },
@@ -42,11 +48,14 @@ export default function Page() {
   const [notice, setNotice] = useState('')
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
+  const [serviceRequest, setServiceRequest] = useState<string | null>(null)
+  const [serviceRequestSent, setServiceRequestSent] = useState(false)
 
   const filtered = useMemo(() => products.filter((product) => `${product.name} ${product.category}`.toLowerCase().includes(search.trim().toLowerCase())), [search])
   const cartCount = cart.reduce((total, line) => total + line.quantity, 0)
   const subtotal = cart.reduce((total, line) => total + priceValue(line.product.price) * line.quantity, 0)
   const amountForFreeShipping = Math.max(0, 75 - subtotal)
+  const activeService = serviceOffers.find((service) => service.id === serviceRequest)
 
   function addToCart(product: Product) {
     setCart((current) => {
@@ -83,6 +92,7 @@ export default function Page() {
         <a className="wordmark" href="#inicio" aria-label="Simon inicio">Simon<span>.</span></a>
         <nav className={`main-nav ${menuOpen ? 'open' : ''}`} aria-label="Navegación principal">
           <a href="#novedades" onClick={() => setMenuOpen(false)}>Novedades</a>
+          <a href="#servicios" onClick={() => setMenuOpen(false)}>Servicios VIP</a>
           {categories.map((category) => <a href="#productos" key={category.name} onClick={() => chooseCategory(category.name)}>{category.name.replace('Moda ', '').replace(/^./, (letter) => letter.toUpperCase())}</a>)}
           <a className="nav-sale" href="#productos" onClick={() => chooseCategory('')}>Ofertas</a>
         </nav>
@@ -108,10 +118,13 @@ export default function Page() {
 
       <section className="products-section page-section" id="productos"><div className="section-heading"><div><p className="eyebrow green">SELECCIÓN SIMON</p><h2>{search ? `Productos: ${search}` : 'Favoritos de la semana'}</h2></div><button className="text-link link-button" onClick={() => setSearch('')}>Ver todo <ArrowRight size={16} /></button></div>{filtered.length ? <div className="product-grid">{filtered.map((product) => <article className="product-card" key={product.name}><div className="product-image"><Image src={photo(product.image, 800)} alt={product.name} fill sizes="(max-width: 700px) 50vw, 25vw" /><span className="product-badge">{product.badge}</span><button className={`favorite-button ${favorites.includes(product.name) ? 'selected' : ''}`} aria-label={favorites.includes(product.name) ? `Quitar ${product.name} de favoritos` : `Agregar ${product.name} a favoritos`} onClick={() => setFavorites((current) => current.includes(product.name) ? current.filter((name) => name !== product.name) : [...current, product.name])}><Heart size={19} fill={favorites.includes(product.name) ? 'currentColor' : 'none'} /></button><button className="quick-add" onClick={() => addToCart(product)}>Agregar a la bolsa</button></div><div className="product-info"><p>{product.category}</p><h3>{product.name}</h3><div className="product-price"><strong>{product.price}</strong>{product.oldPrice && <del>{product.oldPrice}</del>}</div></div></article>)}</div> : <div className="no-results"><p>No encontramos productos para “{search}”.</p><button className="text-link link-button" onClick={() => setSearch('')}>Ver todos los productos <ArrowRight size={16} /></button></div>}</section>
 
+      <section className="vip-services page-section" id="servicios"><div className="section-heading"><div><p className="eyebrow green">ATENCIÓN PERSONALIZADA</p><h2>Soluciones especiales, hechas para vos.</h2></div><span className="vip-label">SIMON · SERVICIOS VIP</span></div><div className="vip-service-grid">{serviceOffers.map((service) => { const ServiceIcon = service.icon; return <article className={`vip-service-card vip-service-${service.id}`} key={service.id}><Image src={photo(service.image, 1100)} alt="" fill sizes="(max-width: 720px) 100vw, 50vw" /><div className="vip-service-shade" /><div className="vip-service-copy"><span className="vip-service-icon"><ServiceIcon size={20} strokeWidth={1.5} /></span><p className="vip-service-eyebrow">{service.name}</p><h3>{service.title}</h3><p className="vip-service-description">{service.description}</p><button className="vip-service-cta" onClick={() => { setServiceRequest(service.id); setServiceRequestSent(false) }}>Solicitar asesoría <ArrowRight size={16} /></button></div></article> })}</div></section>
+
       <section className="newsletter"><div><p className="eyebrow">UN POQUITO DE SIMON EN TU INBOX</p><h2>{subscribed ? '¡Ya sos parte!' : 'Inspiración que llega.'}</h2><p>{subscribed ? `Gracias por tu interés, ${newsletterEmail}. Esta suscripción es una demostración.` : 'Novedades, favoritos y beneficios pensados para vos.'}</p></div><form onSubmit={(event) => { event.preventDefault(); setSubscribed(true) }}><label className="sr-only" htmlFor="newsletter-email">Tu correo electrónico</label><input id="newsletter-email" type="email" placeholder="Tu correo electrónico" value={newsletterEmail} onChange={(event) => setNewsletterEmail(event.target.value)} required disabled={subscribed} /><button type="submit" disabled={subscribed}>{subscribed ? 'Suscripción confirmada' : 'Quiero suscribirme'} {!subscribed && <ArrowRight size={16} />}</button></form></section>
 
       <footer className="site-footer"><a className="wordmark footer-mark" href="#inicio">Simon<span>.</span></a><p>Elegí sentirte bien.</p><div className="footer-links"><a href="#categorias">Ayuda y contacto</a><a href="#categorias">Tiendas</a><a href="#categorias">Términos y condiciones</a><span>© 2026 Simon, S.A. de C.V.</span></div></footer>
 
+      {activeService && <div className="drawer-backdrop account-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setServiceRequest(null) }}><section className="account-dialog service-dialog" role="dialog" aria-modal="true" aria-labelledby="service-dialog-title"><button className="icon-button account-close" aria-label="Cerrar solicitud" onClick={() => setServiceRequest(null)}><X /></button>{serviceRequestSent ? <><span className="account-icon"><Heart /></span><p className="eyebrow green">SIMON · SERVICIOS VIP</p><h2 id="service-dialog-title">Gracias por tu interés.</h2><p>Esta es una vista previa: la solicitud no se envió ni se guardó. Cuando conectemos el servicio de atención, podremos coordinar tu asesoría.</p><button className="checkout-button" onClick={() => setServiceRequest(null)}>Listo</button></> : <><span className="account-icon">{activeService.id === 'casa' ? <Sofa /> : <Ruler />}</span><p className="eyebrow green">{activeService.name}</p><h2 id="service-dialog-title">Conversemos sobre tu proyecto.</h2><p>{activeService.description}</p><form className="service-request-form" onSubmit={(event) => { event.preventDefault(); setServiceRequestSent(true) }}><label>Nombre<input autoComplete="name" required placeholder="Tu nombre" /></label><label>Correo electrónico<input autoComplete="email" type="email" required placeholder="nombre@correo.com" /></label><label>Contanos qué tenés en mente<textarea rows={3} placeholder="Detalles, ideas o preferencias" /></label><p className="service-demo-note">Formulario de demostración: no enviamos ni almacenamos tus datos.</p><button className="checkout-button" type="submit">Preparar solicitud <ArrowRight size={16} /></button></form></>}</section></div>}
       {accountOpen && <div className="drawer-backdrop account-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setAccountOpen(false) }}><section className="account-dialog" role="dialog" aria-modal="true" aria-labelledby="account-title"><button className="icon-button account-close" aria-label="Cerrar mi cuenta" onClick={() => setAccountOpen(false)}><X /></button><span className="account-icon"><UserRound /></span><p className="eyebrow green">BIENVENIDA A SIMON</p><h2 id="account-title">Tu estilo, a tu manera.</h2><p>La cuenta personal todavía no está habilitada en esta demostración. Podés seguir explorando y completar una compra de prueba como invitada.</p><button className="checkout-button" onClick={() => { setAccountOpen(false); document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' }) }}>Continuar como invitada <ArrowRight size={16} /></button></section></div>}
       {notice && <div className="cart-notice" role="status"><span>{notice}</span><button onClick={openCart}>Ver bolsa <ArrowRight size={14} /></button></div>}
       {cartOpen && <div className="drawer-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setCartOpen(false) }} onKeyDown={(event) => { if (event.key === 'Escape') setCartOpen(false) }}>
